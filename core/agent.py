@@ -1,7 +1,7 @@
 # core/agent.py
 from dotenv import load_dotenv
 from google.genai import types
-from core.utils import _setup_client, _format_tools, _convert_to_content
+from core.utils import _setup_client, _format_tools, _convert_to_content, _format_prompt
 
 load_dotenv()
 
@@ -9,13 +9,17 @@ load_dotenv()
 class Agent:
     def __init__(
         self,
+        name: str = "",
+        description: str = "",
         prompt: str = "",
         model: str = "",
         tools: list = [],
         temperature: float = 0.0,
         max_tokens: int = 3000,
     ) -> None:
-        self.prompt = prompt
+        self.name = name
+        self.description = description
+        self.prompt = _format_prompt(prompt, name, description)
         self.model = model
         self.tools = _format_tools(tools)
         self.temperature = temperature

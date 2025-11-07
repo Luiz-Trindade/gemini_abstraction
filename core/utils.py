@@ -172,8 +172,161 @@ Now write your complete narrative memory recap:"""
 def _format_tools(tools: List):
     """
     Formats the provided tools for use with the agent.
+    If a tool is an Agent instance, creates a wrapper function that executes it.
     """
+    from core.agent import Agent
+
     formatted_tools = []
+
     for tool in tools:
-        formatted_tools.append(tool)
+        if isinstance(tool, Agent):
+            # Create a wrapper function that executes the agent
+            def create_agent_wrapper(agent_instance):
+                """Factory function to properly capture the agent in closure"""
+
+                def agent_tool(query: str) -> str:
+                    f"""
+                        {agent_instance.description}
+                        
+                        This tool executes the {agent_instance.name} agent.
+                        
+                        Args:
+                            query: A query or instruction to send to the agent
+                            
+                        Returns:
+                            The agent's response as a string
+                    """.strip()
+
+                    try:
+                        response = agent_instance.execute(entry=query)
+                        return response
+                    except Exception as e:
+                        return f"Error executing {agent_instance.name}: {str(e)}"
+
+                # Set function metadata using agent's name and description
+                agent_tool.__name__ = agent_instance.name
+                agent_tool.__doc__ = f"""
+                    {agent_instance.description}
+
+                    This tool executes the {agent_instance.name} agent.
+
+                    Args:
+                        query (str): A query or instruction to send to the agent
+
+                    Returns:
+                        str: The agent's response
+                """.strip()
+
+                return agent_tool
+
+            # Create and add the wrapper function
+            wrapped_function = create_agent_wrapper(tool)
+            formatted_tools.append(wrapped_function)
+        else:
+            # Keep regular functions as-is
+            formatted_tools.append(tool)
+
     return formatted_tools
+
+
+def _format_prompt(name: str, description: str, prompt: str) -> str:
+    """
+    Formats the base prompt with additional instructions to reinforce behaviors
+    and improve efficiency using Chain of Thought (CoT).
+
+    Args:
+        name: The agent's name
+        description: The agent's description
+        prompt: The base prompt to be enhanced
+
+    Returns:
+        Enhanced prompt in markdown format (English)
+    """
+    formatted_prompt = f"""
+        # System Role
+        ## Identity
+        You are **{name}**, a highly capable and efficient assistant. 
+        {description}
+
+        # System Instructions
+        {prompt}
+
+        ---
+
+        ## 🎯 CRITICAL EXECUTION PROTOCOL
+
+        ### ⚠️ GOLDEN RULE: EXECUTE, DON'T JUST DESCRIBE!
+
+        Follow this workflow for ALL requests:
+
+        #### Step 1: Internal Analysis (Chain of Thought)
+        - Analyze the user's request internally (DO NOT write this to the user).
+        - Determine the required information and the tools/agents needed.
+        - Plan the execution order of the tools.
+
+        #### Step 2: IMMEDIATE Tool Execution
+        - ✓ Execute the tools/agents IMMEDIATELY.
+        - ✓ DO NOT ask for confirmation before using tools.
+        - ✓ DO NOT describe what you're going to do—JUST DO IT.
+
+        #### Step 3: Respond to the User
+        - Present the results clearly and concisely.
+        - Synthesize information if multiple tools were used.
+        - Be direct, helpful, and actionable.
+
+        ---
+
+        ## ❌ PROHIBITED BEHAVIORS
+
+        Avoid the following:
+        - ❌ Describing actions instead of executing them.
+        - ❌ Asking for confirmation before using tools.
+        - ❌ Saying "I will consult" or "Let me check that for you."
+        - ❌ Providing vague or incomplete responses.
+
+        ---
+
+        ## ✅ CORRECT BEHAVIORS
+
+        Always:
+        - ✓ Identify the necessary tools/agents.
+        - ✓ Execute the tools IMMEDIATELY without hesitation.
+        - ✓ Provide clear, direct, and actionable responses.
+        - ✓ Use multiple tools in sequence when required.
+
+        ---
+
+        ## 📋 EXECUTION EXAMPLES
+
+        ### ❌ WRONG:
+        **User:** "What's the price of PETR4?"  
+        **Agent:** "To get the price of PETR4, I will consult the agent_cotacoes."
+
+        ### ✅ CORRECT:
+        **User:** "What's the price of PETR4?"  
+        **Agent:** [CALLS agent_cotacoes IMMEDIATELY]  
+        **Agent:** "PETR4 is trading at R$ 35.40."
+
+        ---
+
+        ### ❌ WRONG:
+        **User:** "Should I buy MGLU3?"  
+        **Agent:** "I will consult the specialists to help you..."
+
+        ### ✅ CORRECT:
+        **User:** "Should I buy MGLU3?"  
+        **Agent:** [CALLS agent_cotacoes, agent_fundamentos, agent_recomendacoes]  
+        **Agent:** "MGLU3 is trading at R$ 2.15. Fundamentals show P/E of 15.2 and DY of 3.5%. The recommendation is Hold, with a target price of R$ 2.30."
+
+        ---
+
+        ## 🔥 REMEMBER
+
+        You are an EXECUTOR, not a planner who merely describes actions.
+
+        **IMMEDIATE ACTION > Description of intentions**
+
+        When tools are available: **USE THEM NOW!**
+    """.strip()
+
+    return formatted_prompt
