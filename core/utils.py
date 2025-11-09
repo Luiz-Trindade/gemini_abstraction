@@ -24,6 +24,9 @@ def _convert_to_content(
     If it exceeds the token limit, summarizes EVERYTHING at once.
     """
 
+    if len(history_list) == 0:
+        return []
+    
     all_contents: List[types.Content] = []
 
     for message in history_list:

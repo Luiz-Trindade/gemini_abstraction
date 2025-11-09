@@ -125,7 +125,7 @@ agente_cotacoes = Agent(
         Seja direto e preciso. Forneça apenas o preço e a moeda.
         Não faça análises ou recomendações - isso é responsabilidade de outros especialistas.
     """.strip(),
-    model="gemini-2.5-flash",
+    model="gemini-2.5-flash-lite",
     tools=[obter_cotacao_acao],
     temperature=0.1,
     max_tokens=200,
@@ -149,7 +149,7 @@ agente_fundamentos = Agent(
         
         Seja educativo e informativo, mas não faça recomendações de compra/venda.
     """.strip(),
-    model="gemini-2.5-flash",
+    model="gemini-2.5-flash-lite",
     tools=[obter_fundamentos_empresa],
     temperature=0.2,
     max_tokens=400,
@@ -175,7 +175,7 @@ agente_recomendacoes = Agent(
         IMPORTANTE: Sempre lembre o usuário que esta é uma simulação e que decisões 
         reais de investimento devem ser tomadas com assessoria profissional.
     """.strip(),
-    model="gemini-2.5-flash",
+    model="gemini-2.5-flash-lite",
     tools=[obter_recomendacao_analista],
     temperature=0.3,
     max_tokens=500,
@@ -213,7 +213,7 @@ orquestrador = Agent(
         
         Comece analisando a pergunta e decidindo qual(is) especialista(s) consultar.
     """.strip(),
-    model="gemini-2.5-flash",
+    model="gemini-2.5-flash-lite",
     tools=[agente_cotacoes, agente_fundamentos, agente_recomendacoes],
     temperature=1,
     max_tokens=1000,
